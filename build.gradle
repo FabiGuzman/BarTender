@@ -1,0 +1,240 @@
+buildscript {
+    ext {
+        vavrVersion = '0.9.0'
+        junitVersion = '4.12'
+        guiceVersion = '4.2.2'
+        sitebricksVersion = '0.8.5'
+        jacocoVersion = '0.8.3'
+        sonarVersion = '1.3'
+        gradleReleaseVersion = '2.6.0'
+        adlCommons = '0.0.261'
+        jacksonVersion = '2.9.8'
+        retrofitVersion = '2.9.0'
+        slf4jVersion = '1.7.25'
+        mockitoVersion = '2.25.0'
+        powerMockitoVersion = '2.0.0'
+        rxJavaVersion = '2.2.7'
+        preapprovalVersion = '2.1.0'
+        approvalsApiVersion = '1.0.5'
+        busicapaVersion = '2.3.5'
+        commonServerlessLambdaVersion = '0.0.37'
+        orikaVersion = '1.4.6'
+        uuidVersion = '3.1.5'
+        jjwtVersion = '0.9.1'
+        commonsIoVersion = '2.6'
+        jose4jVersion = '0.6.5'
+        bbLambdaCommonsVersion = "0.1.37"
+        systemRulesVersion = "1.19.0"
+        jfrogUser = System.getenv('JFROG_USER')
+        jfrogPassword = System.getenv('JFROG_PASSWORD')
+        jfrogContextUrl = System.getenv('JFROG_CONTEXT_URL')
+        sonarToken = System.getenv('SONAR_TOKEN')
+    }
+
+    repositories {
+        mavenLocal()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        maven {
+            url "https://avaldigitallabs.jfrog.io/avaldigitallabs/libs-release"
+            credentials {
+                username = "$jfrogUser"
+                password = "$jfrogPassword"
+            }
+        }
+        maven {
+            url "https://avaldigitallabs.jfrog.io/avaldigitallabs/libs-snapshot"
+            credentials {
+                username = "$jfrogUser"
+                password = "$jfrogPassword"
+            }
+        }
+    }
+    dependencies {
+        classpath 'net.researchgate:gradle-release:2.6.0'
+        classpath("gradle.plugin.argelbargel.gradle.plugins:sonarqube-multiproject-plugin:1.3")
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:latest.release"
+
+    }
+
+}
+
+apply from: "$rootDir/gradle/all.gradle"
+apply from: "$rootDir/gradle/release.gradle"
+
+release {
+    tagTemplate = '$name-$version'
+    failOnCommitNeeded = false
+    failOnPublishNeeded = true
+    failOnSnapshotDependencies = false
+    failOnUnversionedFiles = true
+    failOnUpdateNeeded = true
+    revertOnFail = true
+    preCommitText = '[ci skip] [CircleCI] '
+    preTagCommitMessage = 'release '
+    tagCommitMessage = 'release '
+    newVersionCommitMessage = 'release '
+    buildTasks = ['build', 'releaseBuild', 'publishCurrent']
+
+}
+
+task releaseBuild {
+    dependsOn(
+//            'security-commons:build',
+            'bar-tender:build'
+    )
+}
+
+task publishCurrent {
+    dependsOn('artifactoryPublish')
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    repositories {
+        mavenLocal()
+
+        maven {
+            url "https://avaldigitallabs.jfrog.io/avaldigitallabs/libs-release"
+            credentials {
+                username = "$jfrogUser"
+                password = "$jfrogPassword"
+            }
+        }
+        maven {
+            url "https://avaldigitallabs.jfrog.io/avaldigitallabs/libs-snapshot"
+            credentials {
+                username = "$jfrogUser"
+                password = "$jfrogPassword"
+            }
+        }
+    }
+
+    configurations {
+        all*.exclude group: 'org.springframework.boot'
+        all*.exclude group: 'org.springframework.cloud'
+        all*.exclude group: 'org.springframework.security'
+        all*.exclude group: 'org.springframework.security.oauth.boot'
+        all*.exclude group: 'io.zipkin.java'
+        all*.exclude group: 'io.zipkin.brave'
+        all*.exclude group: 'io.springfox'
+        all*.exclude group: 'io.swagger'
+        all*.exclude group: 'io.zipkin.zipkin2'
+        all*.exclude group: 'io.zipkin'
+        all*.exclude group: 'io.zipkin.reporter2'
+        all*.exclude group: 'com.samskivert'
+        all*.exclude group: 'com.deliveredtechnologies'
+    }
+
+
+    dependencies {
+        testCompile group: 'junit', name: 'junit', version: "$junitVersion"
+        testCompile group: 'org.powermock', name: 'powermock-core', version: "$powerMockitoVersion"
+        testCompile "org.powermock:powermock-module-junit4:$powerMockitoVersion"
+        testCompile group: 'org.powermock', name: 'powermock-api-mockito2', version: "$powerMockitoVersion"
+        testCompile group: 'org.mockito', name: 'mockito-core', version: "$mockitoVersion"
+
+        compile "io.vavr:vavr:$vavrVersion"
+        compile "com.google.inject:guice:$guiceVersion"
+        compile "com.google.sitebricks:sitebricks:$sitebricksVersion"
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "$jacksonVersion"
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: "$jacksonVersion"
+        compile group: 'com.squareup.retrofit2', name: 'retrofit', version: "$retrofitVersion"
+        compile group: 'com.squareup.retrofit2', name: 'converter-gson', version: "$retrofitVersion"
+        compile group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"
+        compile group: 'org.slf4j', name: 'slf4j-simple', version: "$slf4jVersion"
+
+        compile 'javax.xml.bind:jaxb-api:2.3.0'
+
+        compile "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
+        compile "com.squareup.retrofit2:adapter-rxjava2:$retrofitVersion"
+        compile "co.adl.commons:adl-digital-commons-serverless-lambda:$commonServerlessLambdaVersion"
+        compile("co.com.bocc.lambda.commons:bocc-commons-event-annotations:$bbLambdaCommonsVersion")
+        compile(group: 'co.adl.commons', name: 'commons-identity', version: "$adlCommons")
+        compile(group: 'co.adl.commons', name: 'commons-events', version: "$adlCommons")
+        compile(group: 'co.adl.commons', name: 'commons-client', version: "$adlCommons")
+        compile(group: 'co.adl.commons', name: 'commons-errors', version: "$adlCommons")
+
+        compile(group: 'co.com.adl.busicapa', name: 'adl-digital-bc-inquiries-api', version: "$busicapaVersion")
+    }
+
+    tasks.withType(JavaCompile) {
+        options.compilerArgs = [
+                '-Amapstruct.suppressGeneratorTimestamp=true'
+        ]
+    }
+
+
+// Task for building the zip file for upload
+    task buildZip(type: Zip) {
+        // Using the Zip API from gradle to build a zip file of all the dependencies
+        //
+        // The path to this zip file can be set in the serverless.yml file for the
+        // package/artifact setting for deployment to the S3 bucket
+        //
+        // Link: https://docs.gradle.org/current/dsl/org.gradle.api.tasks.bundling.Zip.html
+
+        // set the base name of the zip file
+
+        from compileJava
+        from processResources
+        into('lib') {
+            from configurations.runtime
+        }
+    }
+
+    build.dependsOn buildZip
+
+
+    clean.doLast {
+
+        println("${project(":${it.project.getName()}").projectDir}/.serverless")
+        file("${project(":${it.project.getName()}").projectDir}/.serverless").deleteDir()
+    }
+
+}
+
+task serverlesProperties() {
+
+    doLast {
+
+        def file = new File("${project.buildDir}/serverlessVersion.yml")
+
+        file.withWriter('UTF-8') {
+            subprojects.each {
+
+                s -> it.writeLine(s.getName() + ': ' + s.getName() + '/' + s.getBuildDir().getName() + '/distributions/' + s.getName() + '-' + s.getVersion() + '.zip')
+            }
+        }
+    }
+}
+
+build.dependsOn serverlesProperties
+
+task generateDoc {
+    repositories {
+        jcenter()
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.java.coveragePlugin", "jacoco"
+        property "sonar.jacoco.reportPaths", "$buildDir/reports/jacoco/"
+        property "sonar.exclusions", "**/*Config.java,**/Application.java"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.organization", "avaldigitallabsorganization"
+        property "sonar.login", "$sonarToken"
+    }
+}
+
+//test.finalizedBy jacocoRootReport
+
+task deploy(type: Exec) {
+    doFirst {
+        commandLine 'serverless', 'deploy', '-v'
+    }
+
+}

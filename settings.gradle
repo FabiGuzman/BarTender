@@ -1,0 +1,3 @@
+rootProject.name = 'bocc-related-person-service'
+include 'bar-tender'
+
